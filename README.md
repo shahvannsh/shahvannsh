@@ -1,5 +1,5 @@
 ## Hi there 👋
-<!--
+
 **shahvannsh/shahvannsh** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
 
@@ -17,4 +17,3 @@
                 I am Learning DSA. I am creating many mini project games and GUI's in Python.They will be in this repo. 
                 I am Participating in my hackathons.
                 I am trying to paricipate in GoSoc.
--->
