@@ -17,4 +17,5 @@
                 I am Participating in my hackathons.
                 I am trying to paricipate in GoSoc.
                 Trying make the difference and create something big in life and make my surrounding proud of me
+I have recently got an intership at Nova Techset company as a AI-ML intern 
   
