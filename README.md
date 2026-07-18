@@ -10,12 +10,12 @@
 - 📫 How to reach me: itsvannsh@gmail.com
 - 😄 Pronouns: he/him
 - ⚡ Fun fact: I teach young people about Python in their school and learn in my college. 
-                I am a Second-year student. 
+                I am a Third-year student. 
                 I am mastering my Python language to a level that I know everything related to Python. 
                 I am good at communicating. 
-                I am Learning DSA. I am creating many mini project games and GUI's in Python.They will be in this repo. 
+                I am Learning DAA. I am creating many mini project games and GUI's in Python.They will be in this repo. 
                 I am Participating in my hackathons.
                 I am trying to paricipate in GoSoc.
                 Trying make the difference and create something big in life and make my surrounding proud of me
-I have recently got an intership at Nova Techset company as a AI-ML intern 
-  
+                I have recently got an intership at Nova Techset company as a AI-ML intern 
+                I am also a Campus Ambassdor for IIT-B E-CELL.
