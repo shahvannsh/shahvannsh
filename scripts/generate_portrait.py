@@ -18,7 +18,7 @@ BG_COLOR = "#0d1117"
 
 
 def remove_background(img: Image.Image) -> Image.Image:
-    """Best-effort background removal. Falls back to no-op if rembg unavailable."""
+    """Background removal. Prefers rembg; falls back to OpenCV GrabCut (no model download)."""
     try:
         from rembg import remove
         import io
@@ -26,13 +26,36 @@ def remove_background(img: Image.Image) -> Image.Image:
         img.save(buf, format="PNG")
         out = remove(buf.getvalue())
         result = Image.open(io.BytesIO(out)).convert("RGBA")
-        # composite onto white
         white = Image.new("RGBA", result.size, (255, 255, 255, 255))
         white.paste(result, mask=result.split()[3])
         return white.convert("RGB")
     except ImportError:
-        print("warning: rembg not installed, skipping background removal", file=sys.stderr)
-        return img.convert("RGB")
+        print("info: rembg not available, using GrabCut fallback", file=sys.stderr)
+        return grabcut_background(img)
+
+
+def grabcut_background(img: Image.Image) -> Image.Image:
+    """Soft elliptical vignette mask. Reliable for a centered head-and-shoulders
+    crop without depending on background texture (GrabCut fails on textured walls
+    or foliage near the subject)."""
+    arr = np.array(img.convert("RGB")).astype(np.float32)
+    h, w = arr.shape[:2]
+
+    cy, cx = h * 0.44, w * 0.5   # face/shoulders center, slightly above vertical middle
+    ry, rx = h * 0.62, w * 0.56  # ellipse radii - generous enough to keep shoulders
+
+    yy, xx = np.mgrid[0:h, 0:w]
+    dist = ((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2
+
+    # smooth falloff: 1 inside, 0 outside, soft transition band
+    inner, outer = 0.75, 1.15
+    mask = np.clip((outer - np.sqrt(dist)) / (outer - inner), 0, 1)
+    mask = cv2.GaussianBlur(mask.astype(np.float32), (31, 31), 0)
+
+    white_bg = np.full_like(arr, 255.0)
+    mask3 = mask[:, :, None]
+    out = arr * mask3 + white_bg * (1 - mask3)
+    return Image.fromarray(out.astype(np.uint8))
 
 
 def process_image(path: str, cols: int = COLS):
