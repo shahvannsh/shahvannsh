@@ -15,6 +15,9 @@ FILL = "#c9d1d9"
 BG = "#0d1117"
 FRAME_DUR = 0.09       # seconds per typing frame
 THUMB_FRAME_DUR = 0.12
+TIRED_FRAME_DUR = 0.15
+GESTURE_FRAME_DUR = 0.9
+GESTURE_HOLD_FRAMES = 2
 CURSOR = "_"
 SEED = 3
 
@@ -55,6 +58,23 @@ BODY_ROWS = [
     (5, HEAD_COL - 3, "/_________\\"),
 ]
 
+# alternate shoulder rows used when one or both arms lift away from the
+# normal "arms down" position (phone / point / thinking use one_up,
+# shrug uses both_up) -- torso rows underneath stay the same
+BODY_VARIANTS = {
+    "normal": BODY_ROWS,
+    "one_up": [
+        (3, HEAD_COL - 2, "_/    "),
+        (4, HEAD_COL - 3, "/       \\"),
+        (5, HEAD_COL - 3, "/_________\\"),
+    ],
+    "both_up": [
+        (3, HEAD_COL - 2, "      "),
+        (4, HEAD_COL - 3, "/       \\"),
+        (5, HEAD_COL - 3, "/_________\\"),
+    ],
+}
+
 SCREEN_TOP_ROW = HEAD_ROW + 6
 SCREEN_CONTENT_ROW = SCREEN_TOP_ROW + 1        # first content row
 SCREEN_BOTTOM_ROW = SCREEN_CONTENT_ROW + len(LINES_TO_TYPE)
@@ -66,6 +86,16 @@ KEYBOARD_LEN = SCREEN_INNER_W
 
 EYES_NORMAL = "(o.o)"
 EYES_HAPPY = "(^.^)"
+EYES_TIRED = "(-.-)"
+
+# floating "z"s during the tired pose, drifting up and to the right over time
+ZZZ_STAGES = [
+    [],
+    [(0, 6, "z")],
+    [(0, 6, "z"), (-1, 8, "z")],
+    [(-1, 6, "z"), (-2, 8, "Z"), (-1, 10, "z")],
+]
+DROOP = 1   # rows the head sinks down during the tired pose
 
 # arm/hand overlay pieces per raise-stage, as (row_offset_from_head, col_offset, text)
 ARM_UP_STAGES = [
@@ -76,6 +106,22 @@ ARM_UP_STAGES = [
 ]
 # when arm is raised, the right side of the shoulder line ("_") is removed
 # so the raised arm doesn't collide with the normal down-arm glyph
+
+# --- gesture poses (phone / shrug / point / thinking) -----------------
+EYES_WIDE = "(O.O)"
+EYES_THINK = "(o.-)"
+
+PHONE_EXTRA = [(1, 9, "d"), (2, 8, "|"), (3, 7, "/")]
+SHRUG_EXTRA = [(2, -6, "o"), (3, -5, "/"), (2, 10, "o"), (3, 9, "\\")]
+POINT_EXTRA = [(0, 10, "!"), (1, 10, "|"), (2, 9, "/")]
+THINK_EXTRA = [(2, 8, "5"), (0, 9, "?")]
+
+POSES = {
+    "phone": dict(body="one_up", extra=PHONE_EXTRA, eyes=EYES_NORMAL),
+    "shrug": dict(body="both_up", extra=SHRUG_EXTRA, eyes=EYES_WIDE),
+    "point": dict(body="one_up", extra=POINT_EXTRA, eyes=EYES_NORMAL),
+    "think": dict(body="one_up", extra=THINK_EXTRA, eyes=EYES_THINK),
+}
 
 
 def keyboard_frame(rng):
@@ -103,14 +149,24 @@ def render_scene(f):
     place(canvas, HEAD_ROW + 1, HEAD_COL - 1, f["eyes"])
     place(canvas, HEAD_ROW + 2, HEAD_COL + 1, "|=|")
 
-    for row_off, col, text in BODY_ROWS:
-        if f["arm"] > 0 and row_off == 3:
-            place(canvas, HEAD_ROW + row_off, col, "_/   ")
-        else:
-            place(canvas, HEAD_ROW + row_off, col, text)
-
-    for stage_row, stage_col, ch in ARM_UP_STAGES[f["arm"]]:
+    for stage_row, stage_col, ch in f.get("zzz", []):
         place(canvas, HEAD_ROW + stage_row, HEAD_COL + stage_col, ch)
+
+    pose = f.get("pose")
+    if pose and pose in POSES:
+        body_variant = BODY_VARIANTS[POSES[pose]["body"]]
+        for row_off, col, text in body_variant:
+            place(canvas, HEAD_ROW + row_off, col, text)
+        for row_off, col_off, ch in POSES[pose]["extra"]:
+            place(canvas, HEAD_ROW + row_off, HEAD_COL + col_off, ch)
+    else:
+        for row_off, col, text in BODY_ROWS:
+            if f["arm"] > 0 and row_off == 3:
+                place(canvas, HEAD_ROW + row_off, col, "_/   ")
+            else:
+                place(canvas, HEAD_ROW + row_off, col, text)
+        for stage_row, stage_col, ch in ARM_UP_STAGES[f["arm"]]:
+            place(canvas, HEAD_ROW + stage_row, HEAD_COL + stage_col, ch)
 
     # screen box (rounded corners)
     place(canvas, SCREEN_TOP_ROW, SCREEN_COL, "." + "-" * SCREEN_INNER_W + ".")
@@ -153,24 +209,41 @@ def build_frames():
         for n in range(1, len(full) + 1):
             typed[ch_i] = n
             kb = keyboard_frame(rng)
-            frames.append(dict(typed=list(typed), cursor=True, kb=kb, arm=0, eyes=EYES_NORMAL, dur=FRAME_DUR))
+            frames.append(dict(typed=list(typed), cursor=True, kb=kb, arm=0, eyes=EYES_NORMAL, dur=FRAME_DUR, zzz=[]))
             if full[n - 1] == " ":
                 kb2 = keyboard_frame(rng)
-                frames.append(dict(typed=list(typed), cursor=True, kb=kb2, arm=0, eyes=EYES_NORMAL, dur=FRAME_DUR))
+                frames.append(dict(typed=list(typed), cursor=True, kb=kb2, arm=0, eyes=EYES_NORMAL, dur=FRAME_DUR, zzz=[]))
 
     # hold + blink cursor, still typing pose
     for i in range(6):
         kb = keyboard_frame(rng)
-        frames.append(dict(typed=list(typed), cursor=(i % 2 == 0), kb=kb, arm=0, eyes=EYES_NORMAL, dur=FRAME_DUR))
+        frames.append(dict(typed=list(typed), cursor=(i % 2 == 0), kb=kb, arm=0, eyes=EYES_NORMAL, dur=FRAME_DUR, zzz=[]))
+
+    # tired: eyes droop, zzz's float up, hold, then perk back up
+    still_kb1 = keyboard_frame(rng)
+    for stage in range(len(ZZZ_STAGES)):
+        frames.append(dict(typed=list(typed), cursor=False, kb=still_kb1, arm=0, eyes=EYES_TIRED, dur=TIRED_FRAME_DUR, zzz=ZZZ_STAGES[stage]))
+    for _ in range(8):
+        frames.append(dict(typed=list(typed), cursor=False, kb=still_kb1, arm=0, eyes=EYES_TIRED, dur=TIRED_FRAME_DUR, zzz=ZZZ_STAGES[-1]))
+    for stage in reversed(range(len(ZZZ_STAGES))):
+        frames.append(dict(typed=list(typed), cursor=False, kb=still_kb1, arm=0, eyes=EYES_TIRED, dur=TIRED_FRAME_DUR, zzz=ZZZ_STAGES[stage]))
+
+    # gesture poses: phone call, shrug, point-up (idea), thinking -- each
+    # holds for a beat, cut directly from one to the next
+    for pose_name in ("phone", "shrug", "point", "think"):
+        pose_kb = keyboard_frame(rng)
+        pose_eyes = POSES[pose_name]["eyes"]
+        for _ in range(GESTURE_HOLD_FRAMES):
+            frames.append(dict(typed=list(typed), cursor=False, kb=pose_kb, arm=0, eyes=pose_eyes, dur=GESTURE_FRAME_DUR, zzz=[], pose=pose_name))
 
     # thumbs-up: raise arm through stages, look at viewer, hold, then lower
     still_kb = keyboard_frame(rng)
     for stage in range(len(ARM_UP_STAGES)):
-        frames.append(dict(typed=list(typed), cursor=False, kb=still_kb, arm=stage, eyes=EYES_HAPPY, dur=THUMB_FRAME_DUR))
+        frames.append(dict(typed=list(typed), cursor=False, kb=still_kb, arm=stage, eyes=EYES_HAPPY, dur=THUMB_FRAME_DUR, zzz=[]))
     for _ in range(10):
-        frames.append(dict(typed=list(typed), cursor=False, kb=still_kb, arm=len(ARM_UP_STAGES) - 1, eyes=EYES_HAPPY, dur=THUMB_FRAME_DUR))
+        frames.append(dict(typed=list(typed), cursor=False, kb=still_kb, arm=len(ARM_UP_STAGES) - 1, eyes=EYES_HAPPY, dur=THUMB_FRAME_DUR, zzz=[]))
     for stage in reversed(range(len(ARM_UP_STAGES))):
-        frames.append(dict(typed=list(typed), cursor=False, kb=still_kb, arm=stage, eyes=EYES_NORMAL, dur=THUMB_FRAME_DUR))
+        frames.append(dict(typed=list(typed), cursor=False, kb=still_kb, arm=stage, eyes=EYES_NORMAL, dur=THUMB_FRAME_DUR, zzz=[]))
 
     return frames
 

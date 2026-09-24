@@ -1,5 +1,5 @@
 <picture>
-  <img src="laptop.svg" alt="Conway's Game of Life animation" width="490">
+  <img src="portrait.svg" alt="Conway's Game of Life animation" width="490">
 </picture>
 
 <br>
