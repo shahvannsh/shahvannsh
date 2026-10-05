@@ -2,7 +2,7 @@
 <rect width="100%" height="100%" fill="#0d1117" rx="6"/>
 <style>text{font-family:'JetBrains Mono','DejaVu Sans Mono',monospace}</style>
 <text x="20" y="40" font-size="14" fill="#8b949e">total contributions</text>
-<text x="20" y="75" font-size="36" fill="#c9d1d9" font-weight="bold">287</text>
+<text x="20" y="75" font-size="36" fill="#c9d1d9" font-weight="bold">288</text>
 <rect x="260" y="92" width="14" height="38" fill="#58a6ff" rx="2"/>
 <rect x="280" y="90" width="14" height="40" fill="#58a6ff" rx="2"/>
 <rect x="300" y="97" width="14" height="33" fill="#58a6ff" rx="2"/>
